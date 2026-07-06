@@ -1,0 +1,16 @@
+{
+	"extends": "@ljharb/tsconfig",
+	"compilerOptions": {
+		"target": "ES2021",
+		"paths": {
+			"es-abstract/2025/Get": ["./types/es-abstract/2025/Get.d.ts"],
+			"es-abstract/2025/GetPromiseResolve": ["./types/es-abstract/2025/GetPromiseResolve.d.ts"],
+			"es-abstract/2025/OrdinaryObjectCreate": ["./types/es-abstract/2025/OrdinaryObjectCreate.d.ts"],
+			"es-abstract/2025/NewPromiseCapability": ["./types/es-abstract/2025/NewPromiseCapability.d.ts"]
+		}
+	},
+	"exclude": [
+		"coverage",
+		"test"
+	]
+}
