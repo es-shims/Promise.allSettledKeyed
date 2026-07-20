@@ -8,7 +8,7 @@ var requirePromise = require('./requirePromise');
 
 var bound = callBind(getPolyfill());
 
-/** @type {import('.')} */
+/** @type {typeof import('.')} */
 module.exports = function allSettledKeyed(promises) {
 	requirePromise();
 

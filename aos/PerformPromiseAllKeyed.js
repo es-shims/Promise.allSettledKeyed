@@ -16,7 +16,7 @@ var $isEnumerable = callBound('Object.prototype.propertyIsEnumerable');
 
 // https://tc39.es/proposal-await-dictionary/#sec-performpromiseallkeyed
 
-/** @type {import('./PerformPromiseAllKeyed')} */
+/** @type {typeof import('./PerformPromiseAllKeyed')} */
 module.exports = function PerformPromiseAllKeyed(
 	variant,
 	promises,

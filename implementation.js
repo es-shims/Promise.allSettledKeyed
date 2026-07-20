@@ -13,7 +13,7 @@ var PerformPromiseAllKeyed = require('./aos/PerformPromiseAllKeyed');
 /** @import { PromiseCapability } from './aos/PerformPromiseAllKeyed' */
 
 // https://tc39.es/proposal-await-dictionary/#sec-promise.allsettledkeyed
-/** @type {import('./implementation')} */
+/** @type {typeof import('./implementation')} */
 module.exports = function allSettledKeyed(promises) {
 	var ctor = this; // step 1
 

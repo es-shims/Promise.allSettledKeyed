@@ -5,7 +5,7 @@ var OrdinaryObjectCreate = require('es-abstract/2025/OrdinaryObjectCreate');
 
 // https://tc39.es/proposal-await-dictionary/#sec-createkeyedpromisecombinatorresultobject
 
-/** @type {import('./CreateKeyedPromiseCombinatorResultObject')} */
+/** @type {typeof import('./CreateKeyedPromiseCombinatorResultObject')} */
 module.exports = function CreateKeyedPromiseCombinatorResultObject(entries) {
 	/** @typedef {(typeof entries)[number]} Entry */
 	/** @typedef {Entry['[[Key]]']} K */

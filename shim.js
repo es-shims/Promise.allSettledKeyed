@@ -5,7 +5,7 @@ var requirePromise = require('./requirePromise');
 var getPolyfill = require('./polyfill');
 var define = require('define-properties');
 
-/** @type {import('./shim')} */
+/** @type {typeof import('./shim')} */
 module.exports = function shimAllSettledKeyed() {
 	requirePromise();
 
