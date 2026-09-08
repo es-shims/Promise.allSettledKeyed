@@ -7,6 +7,7 @@ var Invoke = require('es-abstract/2025/Invoke');
 var $TypeError = require('es-errors/type');
 var callBound = require('call-bound');
 var ownKeys = require('own-keys');
+var setFunctionName = require('set-function-name');
 
 var CreateKeyedPromiseCombinatorResultObject = require('./CreateKeyedPromiseCombinatorResultObject');
 
@@ -91,6 +92,8 @@ module.exports = function PerformPromiseAllKeyed(
 						return void undefined; // step 5.b.v.9
 					}
 
+					setFunctionName(onFulfilled, '', true); // step 5.b.vi: CreateBuiltinFunction(fulfilledSteps, 1, "")
+
 					var onRejected;
 					if (variant === '~ALL~') { // step 5.b.ix
 						onRejected = resultCapability['[[Reject]]']; // step 5.b.ix.1
@@ -122,6 +125,8 @@ module.exports = function PerformPromiseAllKeyed(
 
 							return void undefined; // step 5.b.x.2.k
 						};
+
+						setFunctionName(onRejected, '', true); // step 5.b.x.2: CreateBuiltinFunction(rejectedSteps, 1, "")
 					}
 
 					remainingElementsCount['[[Value]]'] += 1; // step 5.b.xi

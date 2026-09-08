@@ -66,5 +66,61 @@ test('PerformPromiseAllKeyed', function (t) {
 		}, st.fail);
 	});
 
+	t.test('the settlement element functions have the shape of a built-in', function (st) {
+		var capture = function (variant) {
+			var captured = [];
+			var thenable = function () {
+				return {
+					then: function (onFulfilled, onRejected) {
+						captured.push({ onFulfilled: onFulfilled, onRejected: onRejected });
+					}
+				};
+			};
+
+			PerformPromiseAllKeyed(
+				variant,
+				{ a: thenable(), b: thenable() },
+				Promise,
+				makeCapability(),
+				function (value) { return value; }
+			);
+
+			return captured;
+		};
+
+		var expectedShape = {
+			configurable: true,
+			enumerable: false,
+			value: '',
+			writable: false
+		};
+
+		var all = capture('~ALL~');
+		st.deepEqual(
+			Object.getOwnPropertyDescriptor(all[0].onFulfilled, 'name'),
+			expectedShape,
+			'~ALL~ onFulfilled has an empty `name`, per CreateBuiltinFunction(fulfilledSteps, 1, "")'
+		);
+		st.equal(all[0].onFulfilled.length, 1, '~ALL~ onFulfilled has a `length` of 1');
+		st.notEqual(all[0].onFulfilled, all[1].onFulfilled, '~ALL~ each key gets a distinct onFulfilled');
+
+		var allSettled = capture('~ALL-SETTLED~');
+		st.deepEqual(
+			Object.getOwnPropertyDescriptor(allSettled[0].onFulfilled, 'name'),
+			expectedShape,
+			'~ALL-SETTLED~ onFulfilled has an empty `name`'
+		);
+		st.deepEqual(
+			Object.getOwnPropertyDescriptor(allSettled[0].onRejected, 'name'),
+			expectedShape,
+			'~ALL-SETTLED~ onRejected has an empty `name`'
+		);
+		st.equal(allSettled[0].onRejected.length, 1, '~ALL-SETTLED~ onRejected has a `length` of 1');
+		st.notEqual(allSettled[0].onFulfilled, allSettled[0].onRejected, '~ALL-SETTLED~ onFulfilled and onRejected differ');
+		st.notEqual(allSettled[0].onRejected, allSettled[1].onRejected, '~ALL-SETTLED~ each key gets a distinct onRejected');
+
+		st.end();
+	});
+
 	return t.end();
 });
