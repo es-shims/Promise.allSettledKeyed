@@ -6,6 +6,11 @@ var inspect = require('object-inspect');
 var getProto = Object.getPrototypeOf;
 var hasOwn = Object.prototype.hasOwnProperty;
 var hasSymbols = typeof Symbol === 'function' && typeof Symbol('foo') === 'symbol';
+var hasProxy = typeof Proxy === 'function';
+
+var settledCapability = function (executor) {
+	executor(function () {}, function () {});
+};
 
 var makeClass = function (source) {
 	try {
@@ -186,6 +191,175 @@ module.exports = function runTests(allSettledKeyed, t) {
 		allSettledKeyed.call(DoubleSettle, { a: 1 }).then(function (result) {
 			st.deepEqual(result.a, fulfilled(1), 'only the first settlement is used');
 			st.equal(getProto(result), null, 'result object has a null prototype');
+		}, st.fail);
+	});
+
+	t.test('the constructor `resolve` is read once, and called once per enumerable key', function (st) {
+		var getCount = 0;
+		var callCount = 0;
+
+		var Ctor = settledCapability;
+		Object.defineProperty(Ctor, 'resolve', {
+			configurable: true,
+			get: function () {
+				getCount += 1;
+				return function (value) {
+					callCount += 1;
+					return Promise.resolve(value);
+				};
+			}
+		});
+
+		var input = { first: 1, second: 2 };
+		Object.defineProperty(input, 'hidden', { enumerable: false, value: 3 });
+
+		allSettledKeyed.call(Ctor, input);
+
+		st.equal(getCount, 1, '`resolve` is read exactly once');
+		st.equal(callCount, 2, '`resolve` is called once per enumerable key');
+
+		delete Ctor.resolve;
+
+		st.end();
+	});
+
+	t.test('does not settle before every entry has settled', function (st) {
+		st.plan(3);
+
+		var resolveCount = 0;
+		var firstOnFulfilled;
+
+		var Ctor = function (executor) {
+			executor(function (result) {
+				resolveCount += 1;
+				st.deepEqual(
+					{ a: result.a, b: result.b, c: result.c },
+					{ a: fulfilled('a-fulfill'), b: fulfilled('b-fulfill'), c: fulfilled('c-fulfill') },
+					'every entry is present when the result resolves'
+				);
+			}, st.fail);
+		};
+		Ctor.resolve = function (value) { return value; };
+
+		allSettledKeyed.call(Ctor, {
+			a: {
+				then: function (onFulfilled) {
+					firstOnFulfilled = onFulfilled;
+				}
+			},
+			b: {
+				then: function (onFulfilled) {
+					firstOnFulfilled('a-fulfill');
+					st.equal(resolveCount, 0, 'settling `a` from inside `b` does not resolve early');
+					onFulfilled('b-fulfill');
+				}
+			},
+			c: {
+				then: function (onFulfilled) {
+					onFulfilled('c-fulfill');
+				}
+			}
+		});
+
+		st.equal(resolveCount, 1, 'the result resolves exactly once');
+	});
+
+	t.test('a fulfillment element is only honored once', function (st) {
+		st.plan(2);
+
+		var Ctor = function (executor) {
+			executor(function (result) {
+				st.deepEqual(result.a, fulfilled('first'), 'only the first fulfillment is recorded');
+				st.equal(getProto(result), null, 'result object has a null prototype');
+			}, st.fail);
+		};
+		Ctor.resolve = function (value) { return value; };
+
+		allSettledKeyed.call(Ctor, {
+			a: {
+				then: function (onFulfilled) {
+					onFulfilled('first');
+					onFulfilled('second');
+				}
+			}
+		});
+	});
+
+	t.test('a rejection element is only honored once', function (st) {
+		st.plan(2);
+
+		var Ctor = function (executor) {
+			executor(function (result) {
+				st.deepEqual(result.a, rejected('first'), 'only the first rejection is recorded');
+				st.equal(getProto(result), null, 'result object has a null prototype');
+			}, st.fail);
+		};
+		Ctor.resolve = function (value) { return value; };
+
+		allSettledKeyed.call(Ctor, {
+			a: {
+				then: function (onFulfilled, onRejected) {
+					onRejected('first');
+					onRejected('second');
+				}
+			}
+		});
+	});
+
+	t.test('a dictionary of only non-enumerable properties settles to an empty object', function (st) {
+		st.plan(2);
+
+		var input = {};
+		Object.defineProperty(input, 'first', { configurable: true, enumerable: false, value: Promise.resolve(1) });
+		Object.defineProperty(input, 'second', { configurable: true, enumerable: false, value: Promise.resolve(2) });
+
+		allSettledKeyed(input).then(function (result) {
+			st.equal(getProto(result), null, 'result object has a null prototype');
+			st.deepEqual(Object.keys(result), [], 'result has no own keys');
+		}, st.fail);
+	});
+
+	t.test('result values are writable, enumerable, configurable data properties', function (st) {
+		st.plan(1);
+
+		allSettledKeyed({ first: Promise.resolve(1) }).then(function (result) {
+			st.deepEqual(
+				Object.getOwnPropertyDescriptor(result, 'first'),
+				{
+					configurable: true,
+					enumerable: true,
+					value: fulfilled(1),
+					writable: true
+				},
+				'`first` is a writable, enumerable, configurable data property'
+			);
+		}, st.fail);
+	});
+
+	t.test('rejects if the `ownKeys` trap throws', { skip: !hasProxy }, function (st) {
+		st.plan(1);
+
+		var err = new Error('ownKeys threw');
+
+		allSettledKeyed(new Proxy({}, {
+			ownKeys: function () {
+				throw err;
+			}
+		})).then(st.fail, function (e) {
+			st.equal(e, err, 'rejects with the thrown error');
+		});
+	});
+
+	t.test('a key with no property descriptor is skipped', { skip: !hasProxy }, function (st) {
+		st.plan(2);
+
+		allSettledKeyed(new Proxy({ key: Promise.resolve(1) }, {
+			getOwnPropertyDescriptor: function () {
+				return void undefined;
+			}
+		})).then(function (result) {
+			st.equal(getProto(result), null, 'result object has a null prototype');
+			st.deepEqual(Object.keys(result), [], 'result has no own keys');
 		}, st.fail);
 	});
 
