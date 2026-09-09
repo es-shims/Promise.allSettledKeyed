@@ -13,6 +13,7 @@ var CreateKeyedPromiseCombinatorResultObject = require('./CreateKeyedPromiseComb
 
 var $isEnumerable = callBound('Object.prototype.propertyIsEnumerable');
 
+/** @import SetFunctionName from 'set-function-name' */
 /** @import { Entry, Variant } from './PerformPromiseAllKeyed' */
 
 // https://tc39.es/proposal-await-dictionary/#sec-performpromiseallkeyed
@@ -60,8 +61,8 @@ module.exports = function PerformPromiseAllKeyed(
 				 * @param {Promise<T>} promise
 				 */
 				function (thisIndex, alreadyCalled, promise) { // step 5.b.iv
-					/** @param {T} value */
-					function onFulfilled(value) { // steps 5.b.v - 5.b.viii
+					// eslint-disable-next-line func-style
+					var onFulfilled = /** @param {T} value */ function (value) { // steps 5.b.v - 5.b.viii
 						if (alreadyCalled['[[Value]]']) {
 							return void undefined; // step 5.b.v.2
 						}
@@ -90,9 +91,13 @@ module.exports = function PerformPromiseAllKeyed(
 						}
 
 						return void undefined; // step 5.b.v.9
-					}
+					};
 
-					setFunctionName(onFulfilled, '', true); // step 5.b.vi: CreateBuiltinFunction(fulfilledSteps, 1, "")
+					setFunctionName(
+						/** @type {ReturnType<typeof SetFunctionName>} */ (onFulfilled),
+						'',
+						true
+					); // step 5.b.vi: CreateBuiltinFunction(fulfilledSteps, 1, "")
 
 					var onRejected;
 					if (variant === '~ALL~') { // step 5.b.ix
@@ -102,8 +107,7 @@ module.exports = function PerformPromiseAllKeyed(
 							throw new $TypeError('Assertion failed: variant is not ~ALL-SETTLED~'); // step 5.b.x.1
 						}
 
-						// eslint-disable-next-line no-shadow
-						onRejected = /** @param {unknown} error */ function onRejected(error) { // steps 5.b.x.2 - 5.b.x.5
+						onRejected = /** @param {unknown} error */ function (error) { // steps 5.b.x.2 - 5.b.x.5
 							if (alreadyCalled['[[Value]]']) {
 								return void undefined; // step 5.b.x.2.b
 							}
@@ -126,7 +130,7 @@ module.exports = function PerformPromiseAllKeyed(
 							return void undefined; // step 5.b.x.2.k
 						};
 
-						setFunctionName(onRejected, '', true); // step 5.b.x.2: CreateBuiltinFunction(rejectedSteps, 1, "")
+						setFunctionName(onRejected, '', true); // step 5.b.x.3: CreateBuiltinFunction(rejectedSteps, 1, "")
 					}
 
 					remainingElementsCount['[[Value]]'] += 1; // step 5.b.xi

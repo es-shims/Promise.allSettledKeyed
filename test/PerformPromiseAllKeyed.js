@@ -1,6 +1,7 @@
 'use strict';
 
 var test = require('tape');
+var functionsHaveConfigurableNames = require('functions-have-names').functionsHaveConfigurableNames();
 
 var PerformPromiseAllKeyed = require('../aos/PerformPromiseAllKeyed');
 
@@ -89,7 +90,7 @@ test('PerformPromiseAllKeyed', function (t) {
 		};
 
 		var expectedShape = {
-			configurable: true,
+			configurable: functionsHaveConfigurableNames,
 			enumerable: false,
 			value: '',
 			writable: false
